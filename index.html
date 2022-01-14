@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log</title>
+  </head>
+  <body>
+    <script>
+      currentTime = () => {
+        let date = new Date();
+        let Y = date.getFullYear();
+        let M = date.getMonth() + 1;
+        let D = date.getDate();
+        let H = date.getHours();
+        let Mi = date.getMinutes();
+        let S = date.getSeconds();
+        return `${Y}-${M}-${D} ${H}:${Mi}:${S}`;
+      };
+      let num = 1;
+      // setInterval(() => {
+      //   num++;
+      //   // debugSW(`${num}`, num, { test: num }, [num]);
+      //   debugSW(`${num}`);
+      // }, 1000);
+
+      // 全局参数
+      window.logParams = {
+        isApp: true, //在app中需要上报 默认false
+        cacheNum: 5, //满n条log后上报 默认10
+      };
+      // degubSW方法
+      window.debugSW = console.debug = ((originFunc) => {
+        return function () {
+          originFunc.apply(console, arguments);
+          let infos = Array.from(arguments);
+          // 只有在app中调用debugSW才需要上报
+          if (this !== console && logParams.isApp) {
+            let logData = {
+              time: currentTime(),
+              infos,
+              userId: "xxx",
+            };
+            // 日志数量10条为一组进行上报
+            let logs = JSON.parse(sessionStorage.getItem("SW-LOGS")) || [];
+            if (logs.length === logParams.cacheNum) {
+              navigator.sendBeacon("http://localhost:3000/logs", JSON.stringify(logs));
+              logs = [];
+              sessionStorage.removeItem("SW-LOGS");
+            }
+            logs.push(logData);
+            sessionStorage.setItem("SW-LOGS", JSON.stringify(logs));
+          }
+        };
+      })(console.debug);
+      debugSW(`${num}`, num, { test: num }, [num]);
+    </script>
+  </body>
+</html>
