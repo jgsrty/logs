@@ -14,7 +14,6 @@ export default {
   mounted() {},
   methods: {
     addLog() {
-      console.error(111)
       debugSW({ test: "fdslafjldsa" });
     },
   },

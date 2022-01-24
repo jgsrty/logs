@@ -91,7 +91,7 @@ let errorLog = {
             message: JSON.stringify(message),
             type: 'error'
           }
-          errorLog.report({ force: false, error: errorData })
+          errorLog.report(false, errorData)
         }
       };
     })(console.error);
@@ -107,19 +107,19 @@ let errorLog = {
             message: JSON.stringify(message),
             type: 'debug'
           }
-          errorLog.report({ force: false, error: debugData })
+          errorLog.report(false, debugData)
         }
       }
     })(console.debug);
     // 监听页面离开自动上报
     document.addEventListener('visibilitychange', () => {
-      if(document.visibilityState === 'hidden' && errorLog.config.logs.length > 0) {
+      if(document.visibilityState === 'hidden') {
         errorLog.report()
       }
     })
   },
 
-  report: ({ force = true, error }) => {
+  report: (force = true, error) => {
     if (!hasInit) {
       return;
     }
@@ -128,33 +128,36 @@ let errorLog = {
       content: errorLog.config.logs
     }
     // 直接上报
-    if(force && errorLog.config.logs.length > 0) {
-      errorLog._sendBeacon(params)
-      return
-    }
-    let { time, message, type } = error
-    let logInfo = {
-      time,
-      message,
-      type,
-      userInfo: errorLog._getUserInfoFn(),
-      projectId: errorLog.config.appkey,
-      ua: window.navigator.userAgent,
-      os: errorLog._getDevices(),
-      osVersion: errorLog._getSystemVersion(),
-      env: errorLog.config.env
-    }
-    errorLog.config.logs.push(logInfo);
-    sessionStorage.setItem("SW-LOGS", JSON.stringify(errorLog.config.logs));
-    if(errorLog.config.interval === null &&  errorLog.config.isIOS) {
-      // 插入log启动计时 10秒未上报则自动提交
-      errorLog.config.interval = setInterval(() => {
+    if (force) {
+      if(errorLog.config.logs.length > 0) {
         errorLog._sendBeacon(params)
-      },3000)
-    }
-    // 日志数量10条为一组进行上报
-    if (errorLog.config.logs.length >= errorLog.config.cacheNum) {
-      errorLog._sendBeacon(params)
+        return
+      }
+    } else {
+      let { time, message, type } = error
+      let logInfo = {
+        time,
+        message,
+        type,
+        userInfo: errorLog._getUserInfoFn(),
+        projectId: errorLog.config.appkey,
+        ua: window.navigator.userAgent,
+        os: errorLog._getDevices(),
+        osVersion: errorLog._getSystemVersion(),
+        env: errorLog.config.env
+      }
+      errorLog.config.logs.push(logInfo);
+      sessionStorage.setItem("SW-LOGS", JSON.stringify(errorLog.config.logs));
+      if (errorLog.config.interval === null &&  errorLog.config.isIOS) {
+        // 插入log启动计时 10秒未上报则自动提交
+        errorLog.config.interval = setInterval(() => {
+          errorLog._sendBeacon(params)
+        },3000)
+      }
+      // 日志数量10条为一组进行上报
+      if (errorLog.config.logs.length >= errorLog.config.cacheNum) {
+        errorLog._sendBeacon(params)
+      }
     }
   },
 
